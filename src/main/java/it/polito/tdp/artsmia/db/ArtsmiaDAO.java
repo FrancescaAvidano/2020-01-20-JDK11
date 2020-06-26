@@ -5,9 +5,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import it.polito.tdp.artsmia.model.ArtObject;
+import it.polito.tdp.artsmia.model.Coppia;
 import it.polito.tdp.artsmia.model.Exhibition;
 
 public class ArtsmiaDAO {
@@ -59,6 +61,57 @@ public class ArtsmiaDAO {
 			return result;
 			
 		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public List<String> getRuoli(){
+		String sql = "SELECT DISTINCT role FROM authorship ORDER BY role";
+		List<String> ruoli = new LinkedList<>();
+		try {
+			Connection conn = DBConnect.getConnection() ;
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				ruoli.add(res.getString("role"));
+				} 
+			conn.close();
+			return ruoli;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public List<Coppia> getCoppia(String ruolo){
+		String sql = "SELECT a1.artist_id AS artista1, a2.artist_id AS artista2, COUNT(DISTINCT(eo1.exhibition_id)) AS peso " + 
+				"FROM artists a1, artists a2, authorship au1, authorship au2, " + 
+				"	 exhibition_objects eo1, exhibition_objects eo2 " + 
+				"WHERE au1.role = ? AND au2.role = ? " + 
+				" 	AND a1.artist_id = au1.artist_id AND a2.artist_id = au2.artist_id " + 
+				" 	AND a1.artist_id > a2.artist_id " + 
+				"	AND au1.object_id = eo1.object_id " + 
+				"	AND au2.object_id = eo2.object_id " + 
+				"	AND eo1.exhibition_id = eo2.exhibition_id " + 
+				"GROUP BY a1.artist_id, a2.artist_id ORDER BY peso desc;";
+		List<Coppia> coppie = new ArrayList<>();
+		try {
+			Connection conn = DBConnect.getConnection() ;
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setString(1, ruolo);
+			st.setString(2, ruolo);
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				coppie.add(new Coppia(res.getInt("artista1"), res.getInt("artista2"), res.getInt("peso")));
+				} 
+			conn.close();
+			return coppie;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}
